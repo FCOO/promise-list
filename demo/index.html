@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="da" style="font-size: 100%">
+<head>
+	<title>fcoo.dk - promise-list - Demo</title>
+	<meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv='x-dns-prefetch-control' content='on'>
+
+	<meta name='copyright' content='FCOO'>
+	<meta name='owner' content='FCOO'>
+
+</head>
+
+<body>
+    See console
+
+
+
+	<script src="bower_components.js"></script>
+	<script src="../src/promise-list.js"></script>
+<script>
+    var pList = new window.PromiseList();
+
+    pList.appendFirst({
+        fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+        reload  : 1,
+        resolve : function(data){
+            console.log('FIRST >>>', data);
+        }
+    })
+
+    pList.prependLast({
+        fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+        resolve : function(data){
+            console.log('LAST >>>', data);
+        }
+    })
+
+    for (var i=0; i<10; i++){
+        pList.append({
+            fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+            niels: i,
+            resolve: function(data, options){
+                console.log(options.niels+' load >>>', data);
+            }
+        })
+        pList.append({
+            data: {'niels':'holt'+i},
+            niels: i,
+            resolve: function(data, options){
+                console.log(options.niels+' data >>>', data);
+            }
+        })
+    }
+
+    pList.getAll();
+
+</script>
+</body>
+</html>
