@@ -24,49 +24,19 @@
     }
     window.PromiseList = PromiseList;
 
+    //asArray(options) - convert options into []OPTIONS
+    function asArray(options){
+        return options ? ($.isArray(options) ? options : [options]) : [];
+    }
+
+
     //Extend the prototype
     window.PromiseList.prototype = {
-
-        //_getList(options) - Convert options = {} or []{} into []{promise, resolve}
-        _getList: function(options){
-            if (!options) return [];
-
-            options = $.isArray(options) ? options : [options];
-            var result = [];
-            $.each(options, function(index, opt){
-                var promise;
-                if (opt.fileName){
-                    //File-name is given => use intervals.getFileName to convert filename and load it
-                    var format = opt.format || 'JSON',
-                        fileName = window.intervals.getFileName(opt.fileName);
-                    switch (format.toUpperCase() ){
-                        case 'JSON' : promise = window.Promise.getJSON(fileName, opt.promiseOptions ); break;
-                        case 'XML'  : promise = window.Promise.getXML (fileName, opt.promiseOptions ); break;
-                        default     : promise = window.Promise.getText(fileName, opt.promiseOptions ); break;
-                    }
-                }
-                else
-                    if (opt.data)
-                        //Data is given => resolve them
-                        promise = new Promise(function(resolve/*, reject*/) {
-                            resolve(opt.data);
-                        });
-                    else
-                        return;
-
-                result.push({
-                    promise: promise,
-                    options: opt
-                });
-            });
-            return result;
-        },
-
 
         //append( options )
         append: function( options, listId ){
             listId = listId || 'list';
-            this[listId] = this[listId].concat( this._getList(options) );
+            this[listId] = this[listId].concat( asArray(options) );
             return this;
         },
         appendFirst: function( options ){
@@ -79,7 +49,7 @@
         //prepend( options )
         prepend: function( options, listId ){
             listId = listId || 'list';
-            this[listId] = this._getList(options).concat( this[listId] );
+            this[listId] = asArray(options).concat( this[listId] );
             return this;
         },
         prependFirst: function( options ){
@@ -95,8 +65,31 @@
             //Create this.allList as this.firstList, this.list, this.lastlist
             this.allList = this.firstList.concat(this.list.concat(this.lastList));
 
+            //Create list of all the promises
             var promiseList = [];
-            $.each(this.allList, function(index, options){ promiseList.push(options.promise); });
+            $.each(this.allList, function(index, options){
+                var promise;
+                if (options.fileName){
+                    //File-name is given => use intervals.getFileName to convert filename and load it
+                    var format = options.format || 'JSON',
+                        fileName = window.intervals.getFileName(options.fileName);
+                    switch (format.toUpperCase() ){
+                        case 'JSON' : promise = window.Promise.getJSON(fileName, options.promiseOptions ); break;
+                        case 'XML'  : promise = window.Promise.getXML (fileName, options.promiseOptions ); break;
+                        default     : promise = window.Promise.getText(fileName, options.promiseOptions ); break;
+                    }
+                }
+                else
+                    if (options.data)
+                        //Data is given => resolve them
+                        promise = new Promise(function(resolve/*, reject*/) {
+                            resolve(options.data);
+                        });
+                    else
+                        return;
+
+                promiseList.push(promise);
+            });
 
             Promise.all( promiseList )
                 .then   ( $.proxy(this._then, this) )
@@ -107,7 +100,7 @@
         _then: function( dataList ){
             var _this = this;
             $.each(dataList, function(index, data){
-                var opt = _this.allList[index].options;
+                var opt = _this.allList[index];
 
                 //Call the resolve-function
                 opt.resolve(data, opt);
