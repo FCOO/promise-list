@@ -70,14 +70,23 @@
             $.each(this.allList, function(index, options){
                 var promise;
                 if (options.fileName){
-                    //File-name is given => use intervals.getFileName to convert filename and load it
-                    var format = options.format || 'JSON',
-                        fileName = window.intervals.getFileName(options.fileName);
-                    switch (format.toUpperCase() ){
-                        case 'JSON' : promise = window.Promise.getJSON(fileName, options.promiseOptions ); break;
-                        case 'XML'  : promise = window.Promise.getXML (fileName, options.promiseOptions ); break;
-                        default     : promise = window.Promise.getText(fileName, options.promiseOptions ); break;
+                    var get;
+                    options.format = options.format ? options.format.toUpperCase() : 'JSON';
+                    switch (options.format){
+                        case 'JSON' : get = window.Promise.getJSON; break;
+                        case 'XML'  : get = window.Promise.getXML; break;
+                        default     : get = window.Promise.getText; break;
                     }
+
+                    if ($.isArray(options.fileName))
+                        promise = Promise.all(
+                            options.fileName.map( function(fName){
+                                return get( window.intervals.getFileName(fName), options.promiseOptions);
+                            })
+                        );
+                    else
+                        //File-name is given => use intervals.getFileName to convert filename and load it
+                        promise = get( window.intervals.getFileName(options.fileName), options.promiseOptions );
                 }
                 else
                     if (options.data)

@@ -30,9 +30,11 @@ To add a `Promise` use
 
 	PROMISE_OPTIONS = {
 		format        : STRING //"JSON", XML" or "TEXT" Defalut = "JSON"
-		fileName      : STRING or OBJECT	//File name. Using window.Intervals.getFileName to convert file-name
+		fileName      : STRING or OBJECT	//File name. Using window.Intervals.getFileName to convert file-name OR
+		fileName	  : []STRING|OBJECT 	//Same as single fileName
 		data          : OBJECT,
-		resolve       : FUNCTION(data, options) //Function to handle the loaded data
+		resolve       : FUNCTION(data, options) //Function to handle the loaded data, OR
+		resolve       : FUNCTION([]data, options) //Function to handle the loaded data (multi)
 		promiseOptions: OBJECT //Individual options for Promise.getTYPE
 		reload        : NUMBER OR BOOLEAN //If given the file will be reloaded every reload minutes (reload = true => 60 minutes)
 	}

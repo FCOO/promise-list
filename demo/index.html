@@ -36,6 +36,23 @@
         }
     })
 
+    var fList = [];
+    for (var i=0; i<10; i++)
+        fList.push('https://app.fcoo.dk/static/setup/ifm_test.json');
+
+    pList.append({
+        fileName: fList,
+        resolve: function(data, options){
+            console.log('fList load >>>', data);
+        }
+    })
+    pList.prependLast({
+        fileName: fList,
+        resolve: function(data, options){
+            console.log('fList load >>>', data);
+        }
+    })
+
     for (var i=0; i<10; i++){
         pList.append({
             fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
