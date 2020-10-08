@@ -82,7 +82,7 @@
             this._createAllList();
 
             if (this.options.prePromiseAll)
-                this.allList = this.options.prePromiseAll(this.allList) || this.allList;
+                this.allList = this.options.prePromiseAll(this.allList, this) || this.allList;
 
             //Create list of all remaining promises and options
             this.promiseList = [];

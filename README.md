@@ -17,7 +17,7 @@ http://FCOO.github.io/promise-list/demo/
 	OPTIONS = {
 		reject: function(error) (optional) - reject/error-function
 		finally: function() (optional) - finally-function
-		prePromiseAll: function(list: []PROMISE_OPTIONS) (optional) - Called before getAll calls Promise.all. 
+		prePromiseAll: function(list: []PROMISE_OPTIONS, promiseList:PROMISELIST) (optional) - Called before getAll calls Promise.all. 
 	}
 	myPromiseList.getAll( /* reject-function */ )
 	//or
