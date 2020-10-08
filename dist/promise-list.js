@@ -125,6 +125,9 @@
                 _this.promiseList.push(promise);
                 _this.optionsList.push(options);
 
+                //Set as resolved to prevent loop if reject
+                options.isResolved = true;
+
                 //If the promise must wait before loading the rest => exit
                 if (options.wait)
                     return false;
