@@ -175,9 +175,12 @@
             //Check if there are more promises in the list
             if (notResolvedFound)
                 this.getAll();
-            else
+            else {
                 if (this.options.finally)
                     this.options.finally(this);
+                if (this.options.finish)
+                    this.options.finish(this);
+            }
         }
     };
 
