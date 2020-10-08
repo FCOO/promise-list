@@ -19,27 +19,42 @@
 	<script src="bower_components.js"></script>
 	<script src="../src/promise-list.js"></script>
 <script>
-    var pList = new window.PromiseList();
+
+    Promise.defaultErrorHandler = function(err){ console.log('defaultErrorHandler', err); };
+    //Promise.defaultPrefetch = function(){ console.log('START defaultPrefetch'); };
+    //Promise.defaultFinally = function(){ console.log('END defaultFinally'); };
+
+    var pList = new window.PromiseList({
+                    prePromiseAll: function( list ){ console.log('pre', list ); },
+                    finally: function(){console.log('FINISH'); }
+                });
 
     pList.appendFirst({
         fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
-        reload  : 1,
-        resolve : function(data){
+        wait: true,
+        //reload  : 1,
+        resolve : function(data, options, promiseList){
             console.log('FIRST >>>', data);
+
+            promiseList.prependLast({
+                fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+                resolve : function(data){
+                    console.log('LAST >>>', data);
+                }
+            })
+            for (var i=0; i<10; i++)
+                promiseList.append({
+                    fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+                    reload: i ? false : 1,
+                    niels: i,
+                    resolve: function(data, options){
+                        console.log(options.niels+' load >>>', data);
+                    }
+                });
         }
     })
 
-    pList.prependLast({
-        fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
-        resolve : function(data){
-            console.log('LAST >>>', data);
-        }
-    })
-
-    var fList = [];
-    for (var i=0; i<10; i++)
-        fList.push('https://app.fcoo.dk/static/setup/ifm_test.json');
-
+/*
     pList.append({
         fileName: fList,
         resolve: function(data, options){
@@ -69,8 +84,8 @@
             }
         })
     }
-
-    pList.getAll();
+*/
+    pList.getAll( function(err){ console.log('promise.all error', err); });
 
 </script>
 </body>

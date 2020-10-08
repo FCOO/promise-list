@@ -10873,7 +10873,7 @@ return jQuery;
 
 ;
 //! moment.js
-//! version : 2.29.0
+//! version : 2.29.1
 //! authors : Tim Wood, Iskren Chernev, Moment.js contributors
 //! license : MIT
 //! momentjs.com
@@ -13414,8 +13414,7 @@ return jQuery;
     hooks.createFromInputFallback = deprecate(
         'value provided is not in a recognized RFC2822 or ISO format. moment construction falls back to js Date(), ' +
             'which is not reliable across all browsers and versions. Non RFC2822/ISO date formats are ' +
-            'discouraged and will be removed in an upcoming major release. Please refer to ' +
-            'http://momentjs.com/guides/#/warnings/js-date/ for more info.',
+            'discouraged. Please refer to http://momentjs.com/guides/#/warnings/js-date/ for more info.',
         function (config) {
             config._d = new Date(config._i + (config._useUTC ? ' UTC' : ''));
         }
@@ -16495,7 +16494,7 @@ return jQuery;
 
     //! moment.js
 
-    hooks.version = '2.29.0';
+    hooks.version = '2.29.1';
 
     setHookCallback(createLocal);
 
@@ -23272,7 +23271,7 @@ module.exports = ret;
                 //File-name is given => load file
                 var promiseOptions =
                         $.extend({
-                            resolve: this.options.resolve ? function(data) { _this.options.resolve(data,  _this); } : null,
+                            resolve: this.options.resolve ? $.proxy(this._resolve, this) : null,
                             reject : this.options.reject  ? function(error){ _this.options.reject (error, _this); } : null
                         }, this.options.promiseOptions);
 
@@ -23288,7 +23287,18 @@ module.exports = ret;
             else
                 //Data is given => resolve them
                 this.options.resolve(this.options.fileNameOrData);
+        },
+        _resolve: function(data){
+            var arg = [data];
+            if (this.options.resolveArguments)
+                arg = arg.concat(this.options.resolveArguments);
+            else
+                arg = arg.concat([this]);
+            this.options.resolve.apply(null, arg);
         }
+
+
+
     };
 
     //Create default intervals

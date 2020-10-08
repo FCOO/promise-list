@@ -16,7 +16,13 @@ http://FCOO.github.io/promise-list/demo/
 	var myPromiseList = new PromiseList( OPTIONS );
 	OPTIONS = {
 		reject: function(error) (optional) - reject/error-function
-		finally: function() (optional) - finally-function				
+		finally: function() (optional) - finally-function
+		prePromiseAll: function(list: []PROMISE_OPTIONS) (optional) - Called before getAll calls Promise.all. 
+	}
+	myPromiseList.getAll( /* reject-function */ )
+	//or
+	myPromiseList.promiseAll( /* reject-function */ )
+	
 
 ### Methods
 To add a `Promise` use
@@ -36,6 +42,8 @@ To add a `Promise` use
 		resolve       : FUNCTION(data, options) //Function to handle the loaded data, OR
 		resolve       : FUNCTION([]data, options) //Function to handle the loaded data (multi)
 		promiseOptions: OBJECT //Individual options for Promise.getTYPE
+		wait		  : BOOLEAN. If true the rest of the added promises will be loaded after resolve is called. 
+						Makes if possible for resolve to add new files or data to the list 
 		reload        : NUMBER OR BOOLEAN //If given the file will be reloaded every reload minutes (reload = true => 60 minutes)
 	}
 
