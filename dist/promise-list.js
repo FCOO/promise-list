@@ -135,7 +135,7 @@
 
             Promise.all( this.promiseList )
                 .then   ( $.proxy(this._then, this) )
-                .catch  ( reject || this.options.reject )
+                .catch  ( reject || this.options.reject || function(){} )
                 .finally( $.proxy(this._finally, this) );
         },
 
