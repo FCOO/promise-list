@@ -81,8 +81,13 @@
             //Create this.allList as this.firstList, this.list, this.lastlist
             this._createAllList();
 
-            if (this.options.prePromiseAll)
-                this.allList = this.options.prePromiseAll(this.allList, this) || this.allList;
+            if (this.options.prePromiseAll){
+//                this.allList = this.options.prePromiseAll(this.allList, this) || this.allList;
+                var prePromiseAllList = $.isArray(this.options.prePromiseAll) ? this.options.prePromiseAll : [this.options.prePromiseAll];
+                prePromiseAllList.forEach( function( prePromise ){
+                    _this.allList = prePromise(_this.allList, _this) || _this.allList;
+                });
+            }
 
             //Create list of all remaining promises and options
             this.promiseList = [];
