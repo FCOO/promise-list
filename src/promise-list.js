@@ -181,10 +181,19 @@
             if (notResolvedFound)
                 this.getAll();
             else {
-                if (this.options.finally)
-                    this.options.finally(this);
-                if (this.options.finish)
-                    this.options.finish(this);
+                this._callFuncList('finally');
+                this._callFuncList('finish');
+            }
+        },
+
+        _callFuncList: function( optionsName ){
+            var _this = this,
+                funcList = this.options[optionsName];
+            if (funcList){
+                funcList = $.isArray(funcList) ? funcList : [funcList];
+                funcList.forEach( function( func ){
+                    func(_this);
+                });
             }
         }
     };
