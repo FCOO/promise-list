@@ -82,7 +82,6 @@
             this._createAllList();
 
             if (this.options.prePromiseAll){
-//                this.allList = this.options.prePromiseAll(this.allList, this) || this.allList;
                 var prePromiseAllList = $.isArray(this.options.prePromiseAll) ? this.options.prePromiseAll : [this.options.prePromiseAll];
                 prePromiseAllList.forEach( function( prePromise ){
                     _this.allList = prePromise(_this.allList, _this) || _this.allList;
@@ -107,6 +106,14 @@
                         case 'XML'  : get = window.Promise.getXML; break;
                         default     : get = window.Promise.getText; break;
                     }
+
+                    //Extend promiseOptions with options from this
+                    options.promiseOptions = $.extend({}, {
+                            useDefaultErrorHandler  : options.useDefaultErrorHandler,
+                            retries                 : options.retries,
+                            retryDelay              : options.retryDelay
+                        },
+                        options.promiseOptions || {});
 
                     if ($.isArray(options.fileName))
                         promise = Promise.all(
@@ -155,16 +162,24 @@
                 opt.isResolved = true;
 
                 //If the file/data needs to reload with some interval => adds the resolve to windows.intervals.addInterval after the first load
-                if (opt.reload)
+                if (opt.reload){
                     window.intervals.addInterval({
                         duration        : opt.reload === true ? 60 : opt.reload,
                         fileName        : opt.fileName,
                         data            : opt.data,
                         resolve         : opt.resolve,
                         resolveArguments: [opt, _this],
-                        reject          : null,
+
+                        reject                : opt.reject,
+                        useDefaultErrorHandler: opt.useDefaultErrorHandler,
+                        retries               : opt.retries,
+                        retryDelay            : opt.retryDelay || 1000,
+
+                        promiseOptions  : opt.promiseOptions,
+
                         wait            : true
                     });
+                }
             });
             return true;
         },

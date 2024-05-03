@@ -20,36 +20,50 @@
 	<script src="../src/promise-list.js"></script>
 <script>
 
+    window.intervals.options.durationUnit = 'seconds';
+
+
     Promise.defaultErrorHandler = function(err){ console.log('defaultErrorHandler', err); };
     //Promise.defaultPrefetch = function(){ console.log('START defaultPrefetch'); };
     //Promise.defaultFinally = function(){ console.log('END defaultFinally'); };
 
     var pList = new window.PromiseList({
-                    prePromiseAll: function( list ){ console.log('pre', list ); },
+                    prePromiseAll: function( list ){ console.log('prePromiseAll list=>', list ); },
+                    reject: function(){ console.log('pList reject arguments=>', arguments); },
                     finally: function(){console.log('FINISH'); }
                 });
 
-    pList.appendFirst({
-        fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
-        wait: true,
-        //reload  : 1,
-        resolve : function(data, options, promiseList){
-            console.log('FIRST >>>', data);
+/*
+    window.Promise.getJSON('https://bal.fcoo.dk/static/setup/fcoo-maps-menu.json', {
+        noCache: true,
+        resolve: function( json ){ console.log('getJSON => ', json ); },
+        reject : function(){ console.log('ERROR => ', arguments ); },
+    });
+*/    
 
+    pList.appendFirst({
+        fileName: 'https://bal.fcoo.dk/static/setup/fcoo-maps-menu.json',
+        wait: true,
+        resolve : function(data, options, promiseList){
+            console.log('resolve FIRST data=>', data);
             promiseList.prependLast({
-                fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
+                fileName: 'https://bal.fcoo.dk/static/setup/fcoo-maps-menu.json',
                 resolve : function(data){
-                    console.log('LAST >>>', data);
+                    console.log('resolve LAST data=>', data);
                 }
             })
+
             for (var i=0; i<10; i++)
                 promiseList.append({
-                    fileName: 'https://app.fcoo.dk/static/setup/ifm_test.json',
-                    reload: i ? false : 1,
+                    
+                    fileName: 'https://bal.fcoo.dk/static/setup/fcoo-maps-menu.json',// + (i==4 ? 'xx' : ''),
+                    reload: i==4 ? 20 : false,
+                    retries: 5,
+                    retriesDelay: 2,
                     niels: i,
-                    resolve: function(data, options){
-                        console.log(options.niels+' load >>>', data);
-                    }
+                    resolve: function(data, options){ console.log('resolve #'+ options.niels +' data=>', data); },
+                    reject: function(){ console.log('reject arguments=>', arguments); },
+                    useDefaultErrorHandler: false
                 });
         }
     })
