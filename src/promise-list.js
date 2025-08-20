@@ -20,6 +20,7 @@
         this.firstList = [];
         this.list = [];
         this.lastList = [];
+        this.finallyList = [];
 
     }
     window.PromiseList = PromiseList;
@@ -34,8 +35,7 @@
     window.PromiseList.prototype = {
 
         //append( options )
-        append: function( options, listId ){
-            listId = listId || 'list';
+        append: function( options, listId = 'list'){
             this[listId] = this[listId].concat( asArray(options) );
             return this;
         },
@@ -44,6 +44,9 @@
         },
         appendLast: function( options ){
             return this.append( options, 'lastList');
+        },
+        appendFinally: function( options ){
+            return this.append( options, 'finallyList');
         },
 
         //prepend( options )
@@ -58,11 +61,14 @@
         prependLast: function( options ){
             return this.prepend( options, 'lastList');
         },
+        prependFinally: function( options ){
+            return this.prepend( options, 'finallyList');
+        },
 
         _createAllList: function(){
             var _this = this;
             this.allList = [];
-            $.each([this.firstList, this.list, this.lastList], function(index, list){
+            $.each([this.firstList, this.list, this.lastList, this.finallyList], function(index, list){
                 $.each(list, function(index, item){
                     _this.allList.push(item);
                 });

@@ -24512,30 +24512,45 @@ module.exports = Yaml;
     Promise.defaultErrorHandler = Promise.defaultErrorHandler || function( /* error: {name, status, message, text, statusText}  */ ){};
 
     function createErrorObject( reason, url ){
-        var response = reason.response,
-            text = response ? response.statusText :
-                    reason.message ? reason.message :
-                    reason;
-        return {
+        let response = reason.response || {},
+            text     = response.statusText || reason.statusText || response.message || reason.message,
+            error    = new Error(text, url);
+
+        $.extend(error, {
             name      : 'Error',
-            status    : response ? response.status : null,
+            status    : response.status || reason.status || null,
             url       : url,
             message   : text,
             text      : text,
             statusText: text
-        };
+        });
+        return error;
     }
 
     //Set event handler for unhandled rejections
     window.onunhandledrejection = function(e, promise){
+
         if (e && e.preventDefault)
             e.preventDefault();
 
-        //Unknown why, but in some browwsers onunhandledrejection is called twice - one time with e.detail
+        //Unknown why, but in some browsers onunhandledrejection is called twice - one time with e.detail
         if (e && e.detail)
             return false;
 
-        var url = promise && promise.promiseOptions ? promise.promiseOptions.url : null;
+        let url = '';
+
+
+        if (promise){
+            //Try different ways to get the url
+            if (promise.toJSON){
+                const pJSON = promise.toJSON();
+                url = pJSON && pJSON.rejectionReason ? pJSON.rejectionReason.url : '';
+            }
+
+            if (!url)
+                url = promise.promiseOptions ? promise.promiseOptions.url : '';
+        }
+
 
         Promise.defaultErrorHandler( createErrorObject( e, url ) );
     };
@@ -24593,9 +24608,14 @@ module.exports = Yaml;
 */
         }, options || {});
 
-        //Adding parame dummy=12345678 if options.noCache: true to force no-cache. TODO: Replaced with correct header
+        //Adding parame dummy=12345678 if options.noCache: true to force no-cache
         if (options.noCache)
             url = url + (url.indexOf('?') > 0 ? '&' : '?') + 'dummy='+Math.random().toString(36).substr(2, 9);
+        //Tried cache: 'reload' but did not seam to work
+        //if (options.noCache && !options.cache)
+        //    options.cache = 'reload';
+
+
 
         if (Promise.defaultPrefetch && !options.noDefaultPrefetch)
             Promise.defaultPrefetch(url, options);
@@ -24605,8 +24625,12 @@ module.exports = Yaml;
                 .then((response) => {
                     if (response.ok)
                         resolve(response);
-                    else
-                        return Promise.reject(response);
+                    else {
+                        return Promise.reject(createErrorObject(response, options.url));
+                        //return Promise.reject(new Error(response));
+                        //return Promise.reject(response);
+                        //return createErrorObject(response, options.url);
+                    }
                 })
                 .catch((/*error*/reason) => {
                     if (options.retries > 0){
@@ -24617,8 +24641,6 @@ module.exports = Yaml;
                             .then(()=> Promise.fetch(url, options) );
                     }
                     else {
-
-                        //console.log('HER', error, reject, options);
                         let error =  createErrorObject(reason, options.url);
                         if (options.reject)
                             options.reject(error);
@@ -24706,10 +24728,12 @@ module.exports = Yaml;
         fin     = fin     || options.finally || options.always;
 
         if (options.context){
-            resolve = resolve ? $.proxy( resolve, options.context ) : null;
-            reject = reject   ? $.proxy( reject,  options.context ) : null;
-            fin    = fin      ? $.proxy( fin,     options.context ) : null;
+            resolve = resolve ? resolve.bind(options.context) : null;
+            reject = reject   ? reject.bind(options.context)  : null;
+            fin    = fin      ? fin.bind(options.context)     : null;
         }
+
+        options.reject = reject;
 
         var result =
             Promise.fetch(url, options) //Get the file
@@ -24738,6 +24762,9 @@ module.exports = Yaml;
                     result
                         .then( function(response) { return response.text(); })
                         .then( parseXML );
+
+                if (options.asJSON)
+                    result = result.then( function(xml){ return window.xmlToJSON(xml); });
                 break;
         }
 
@@ -24801,6 +24828,186 @@ module.exports = Yaml;
     };
 
 }(jQuery, this, Promise, document));
+
+
+;
+/****************************************************************************
+This work is licensed under Creative Commons GNU LGPL License.
+
+License: http://creativecommons.org/licenses/LGPL/2.1/
+Version: 0.9
+Author:  Stefan Goessner/2006
+Web:     http://goessner.net/
+****************************************************************************/
+
+(function (window /*, document, undefined*/) {
+    "use strict";
+
+function xml2json(xml, tab) {
+   var X = {
+      toObj: function(xml) {
+         var o = {}, n;
+         if (xml.nodeType==1) {   // element node ..
+            if (xml.attributes.length)   // element with attributes  ..
+               for (var i=0; i<xml.attributes.length; i++)
+                  o["@"+xml.attributes[i].nodeName] = (xml.attributes[i].nodeValue||"").toString();
+            if (xml.firstChild) { // element has child nodes ..
+               var textChild=0, cdataChild=0, hasElementChild=false;
+               for (n=xml.firstChild; n; n=n.nextSibling) {
+                  if (n.nodeType==1) hasElementChild = true;
+                  else if (n.nodeType==3 && n.nodeValue.match(/[^ \f\n\r\t\v]/)) textChild++; // non-whitespace text
+                  else if (n.nodeType==4) cdataChild++; // cdata section node
+               }
+               if (hasElementChild) {
+                  if (textChild < 2 && cdataChild < 2) { // structured element with evtl. a single text or/and cdata node ..
+                     X.removeWhite(xml);
+                     for (n=xml.firstChild; n; n=n.nextSibling) {
+                        if (n.nodeType == 3)  // text node
+                           o["#text"] = X.escape(n.nodeValue);
+                        else if (n.nodeType == 4)  // cdata node
+                           o["#cdata"] = X.escape(n.nodeValue);
+                        else if (o[n.nodeName]) {  // multiple occurence of element ..
+                           if (o[n.nodeName] instanceof Array)
+                              o[n.nodeName][o[n.nodeName].length] = X.toObj(n);
+                           else
+                              o[n.nodeName] = [o[n.nodeName], X.toObj(n)];
+                        }
+                        else  // first occurence of element..
+                           o[n.nodeName] = X.toObj(n);
+                     }
+                  }
+                  else { // mixed content
+                     if (!xml.attributes.length)
+                        o = X.escape(X.innerXml(xml));
+                     else
+                        o["#text"] = X.escape(X.innerXml(xml));
+                  }
+               }
+               else if (textChild) { // pure text
+                  if (!xml.attributes.length)
+                     o = X.escape(X.innerXml(xml));
+                  else
+                     o["#text"] = X.escape(X.innerXml(xml));
+               }
+               else if (cdataChild) { // cdata
+                  if (cdataChild > 1)
+                     o = X.escape(X.innerXml(xml));
+                  else
+                     for (n=xml.firstChild; n; n=n.nextSibling)
+                        o["#cdata"] = X.escape(n.nodeValue);
+               }
+            }
+            if (!xml.attributes.length && !xml.firstChild) o = null;
+         }
+         else if (xml.nodeType==9) { // document.node
+            o = X.toObj(xml.documentElement);
+         }
+         else
+            alert("unhandled node type: " + xml.nodeType);
+         return o;
+      },
+      toJson: function(o, name, ind) {
+         var json = name ? ("\""+name+"\"") : "";
+         if (o instanceof Array) {
+            for (var i=0,n=o.length; i<n; i++)
+               o[i] = X.toJson(o[i], "", ind+"\t");
+            json += (name?":[":"[") + (o.length > 1 ? ("\n"+ind+"\t"+o.join(",\n"+ind+"\t")+"\n"+ind) : o.join("")) + "]";
+         }
+         else if (o == null)
+            json += (name&&":") + "null";
+         else if (typeof(o) == "object") {
+            var arr = [];
+            for (var m in o)
+               arr[arr.length] = X.toJson(o[m], m, ind+"\t");
+            json += (name?":{":"{") + (arr.length > 1 ? ("\n"+ind+"\t"+arr.join(",\n"+ind+"\t")+"\n"+ind) : arr.join("")) + "}";
+         }
+         else if (typeof(o) == "string")
+            json += (name&&":") + "\"" + o.toString() + "\"";
+         else
+            json += (name&&":") + o.toString();
+         return json;
+      },
+      innerXml: function(node) {
+         var s = "";
+         if ("innerHTML" in node)
+            s = node.innerHTML;
+         else {
+            var asXml = function(n) {
+               var s = "";
+               if (n.nodeType == 1) {
+                  s += "<" + n.nodeName;
+                  for (var i=0; i<n.attributes.length;i++)
+                     s += " " + n.attributes[i].nodeName + "=\"" + (n.attributes[i].nodeValue||"").toString() + "\"";
+                  if (n.firstChild) {
+                     s += ">";
+                     for (var c=n.firstChild; c; c=c.nextSibling)
+                        s += asXml(c);
+                     s += "</"+n.nodeName+">";
+                  }
+                  else
+                     s += "/>";
+               }
+               else if (n.nodeType == 3)
+                  s += n.nodeValue;
+               else if (n.nodeType == 4)
+                  s += "<![CDATA[" + n.nodeValue + "]]>";
+               return s;
+            };
+            for (var c=node.firstChild; c; c=c.nextSibling)
+               s += asXml(c);
+         }
+         return s;
+      },
+      escape: function(txt) {
+         return txt.replace(/[\\]/g, "\\\\")
+                   .replace(/["]/g, '\\"')
+                   .replace(/[\n]/g, '\\n')
+                   .replace(/[\r]/g, '\\r');
+      },
+      removeWhite: function(e) {
+         e.normalize();
+         for (var n = e.firstChild; n; ) {
+            if (n.nodeType == 3) {  // text node
+               if (!n.nodeValue.match(/[^ \f\n\r\t\v]/)) { // pure whitespace text node
+                  var nxt = n.nextSibling;
+                  e.removeChild(n);
+                  n = nxt;
+               }
+               else
+                  n = n.nextSibling;
+            }
+            else if (n.nodeType == 1) {  // element node
+               X.removeWhite(n);
+               n = n.nextSibling;
+            }
+            else                      // any other node
+               n = n.nextSibling;
+         }
+         return e;
+      }
+   };
+   if (xml.nodeType == 9) // document node
+      xml = xml.documentElement;
+   var json = X.toJson(X.toObj(X.removeWhite(xml)), xml.nodeName, "\t");
+   return "{\n" + tab + (tab ? json.replace(/\t/g, tab) : json.replace(/\t|\n/g, "")) + "\n}";
+}
+
+
+window.xmlToJSON = function(xml) {
+    let jsonStr = xml2json(xml, ''),
+        json    = null;
+
+    try {
+        json = JSON.parse(jsonStr);
+    }
+    catch (error){
+        json = null;
+    }
+    return json;
+};
+
+}(this, document));
+
 
 
 ;
