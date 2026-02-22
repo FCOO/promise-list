@@ -109,6 +109,7 @@
                     options.format = options.format ? options.format.toUpperCase() : 'JSON';
                     switch (options.format){
                         case 'JSON' : get = window.Promise.getJSON; break;
+                        case 'YAML' : get = window.Promise.getYAML; break;
                         case 'XML'  : get = window.Promise.getXML; break;
                         default     : get = window.Promise.getText; break;
                     }
